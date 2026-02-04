@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { InventoryItem } from '@/services/inventoryService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ReorderEmailModalProps {
@@ -36,41 +37,25 @@ export function ReorderEmailModal({ open, onOpenChange, item }: ReorderEmailModa
     setEmailContent('');
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-reorder-email`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            itemName: item.name,
-            currentQuantity: item.quantity,
-            reorderQuantity,
-            supplierName: item.supplier?.company_name || 'Unknown Supplier',
-            sku: item.sku,
-            unitPrice: item.unit_price,
-            companyName: companyName || 'Our Company',
-            senderName: senderName || 'Procurement Team',
-          }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('generate-reorder-email', {
+        body: {
+          itemName: item.name,
+          currentQuantity: item.quantity,
+          reorderQuantity,
+          supplierName: item.supplier?.company_name || 'Unknown Supplier',
+          sku: item.sku,
+          unitPrice: item.unit_price,
+          companyName: companyName || 'Our Company',
+          senderName: senderName || 'Procurement Team',
+        },
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (response.status === 429) {
-          toast.error('Rate limit reached. Please wait a moment and try again.');
-          return;
-        }
-        if (response.status === 402) {
-          toast.error('AI credits exhausted. Please add credits to continue.');
-          return;
-        }
-        throw new Error(errorData.error || 'Failed to generate email');
+      if (error) {
+        console.error('Edge function error:', error);
+        toast.error('Failed to generate email. Please try again.');
+        return;
       }
 
-      const data = await response.json();
       setEmailContent(data.email);
       toast.success('Email generated successfully!');
     } catch (error) {
