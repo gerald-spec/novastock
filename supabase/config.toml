@@ -1,0 +1,4 @@
+project_id = "cdlxyxiumrlgrnjpcepg"
+
+[functions.generate-reorder-email]
+verify_jwt = false
