@@ -51,21 +51,11 @@ export function ReorderEmailModal({ open, onOpenChange, item }: ReorderEmailModa
       });
 
       if (error) {
-        throw error;
-      }
-        const errorData = await response.json();
-        if (response.status === 429) {
-          toast.error('Rate limit reached. Please wait a moment and try again.');
-          return;
-        }
-        if (response.status === 402) {
-          toast.error('AI credits exhausted. Please add credits to continue.');
-          return;
-        }
-        throw new Error(errorData.error || 'Failed to generate email');
+        console.error('Edge function error:', error);
+        toast.error('Failed to generate email. Please try again.');
+        return;
       }
 
-      const data = await response.json();
       setEmailContent(data.email);
       toast.success('Email generated successfully!');
     } catch (error) {
